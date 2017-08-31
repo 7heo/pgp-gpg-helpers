@@ -1,0 +1,25 @@
+#!/bin/sh
+
+if [ $# -eq 0 ]; then
+cat <<EOF
+Usage $0 <id or mail of key to export | file name of key to import>
+EOF
+exit 1
+fi
+
+if [ -f "$1" -a -r "$1" ]; then # import
+	printf "Please type in the fingerprint of the key to import: "
+	read typed_fingerprint
+	typed_fingerprint="$(printf "$typed_fingerprint" | tr -d ' ' | tr '[:upper:]' '[:lower:]')"
+	file_fingerprint="$(gpg --with-fingerprint "$1" | sed '/^\s*Key fingerprint/!d; s/^\s*Key fingerprint\s*=\s*//' | tr -d ' ' | tr '[:upper:]' '[:lower:]')"
+	if [ "$typed_fingerprint" = "$file_fingerprint" ]; then
+		gpg --import < $1
+		printf "Key imported.\n"
+	else
+		printf "The fingerprints didn't match. Please check with the key owner!\n" >&2
+	fi
+else # export
+	date="$(date '+%s')"
+	gpg --armor --export "$1" > "exported-public-pgp-key-$(echo "$1" | tr ' ' '_')-$date.asc"
+	printf "Key exported to exported-public-pgp-key-$(echo "$1" | tr ' ' '_')-$date.asc"
+fi
